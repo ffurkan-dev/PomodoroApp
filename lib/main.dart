@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,10 +13,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Pomodoro Timer',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.red,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      debugShowCheckedModeBanner: false,
       home: const PomodoroTimer(),
     );
   }
@@ -30,46 +31,25 @@ class PomodoroTimer extends StatefulWidget {
   State<PomodoroTimer> createState() => _PomodoroTimerState();
 }
 
-enum PomodoroMode { focus, breakMode }
-
 class _PomodoroTimerState extends State<PomodoroTimer> {
-  PomodoroMode _mode = PomodoroMode.focus;
-  int _focusMinutes = 25;
-  int _breakMinutes = 5;
-  int _minutes = 25;
-  int _seconds = 0;
-  Timer? _timer;
+  static const int focusDuration = 25 * 60; // 25 minutes in seconds
+  static const int breakDuration = 5 * 60; // 5 minutes in seconds
+  
+  int _timeLeft = focusDuration;
   bool _isRunning = false;
+  bool _isFocusMode = true;
+  Timer? _timer;
   Task? _currentTask;
-  Color _backgroundColor = Colors.white;
 
-  void switchMode(PomodoroMode mode) {
-    setState(() {
-      _mode = mode;
-      _timer?.cancel();
-      _isRunning = false;
-      if (_mode == PomodoroMode.focus) {
-        _minutes = _focusMinutes;
-      } else {
-        _minutes = _breakMinutes;
-      }
-      _seconds = 0;
-    });
-  }
-
-  void startTimer() {
+  void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        if (_seconds > 0) {
-          _seconds--;
+        if (_timeLeft > 0) {
+          _timeLeft--;
         } else {
-          if (_minutes > 0) {
-            _minutes--;
-            _seconds = 59;
-          } else {
-            _timer?.cancel();
-            _isRunning = false;
-          }
+          _timer?.cancel();
+          _isRunning = false;
+          _switchMode();
         }
       });
     });
@@ -78,24 +58,32 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     });
   }
 
-  void stopTimer() {
+  void _pauseTimer() {
     _timer?.cancel();
     setState(() {
       _isRunning = false;
     });
   }
 
-  void resetTimer() {
+  void _resetTimer() {
     _timer?.cancel();
     setState(() {
-      if (_mode == PomodoroMode.focus) {
-        _minutes = _focusMinutes;
-      } else {
-        _minutes = _breakMinutes;
-      }
-      _seconds = 0;
+      _timeLeft = _isFocusMode ? focusDuration : breakDuration;
       _isRunning = false;
     });
+  }
+
+  void _switchMode() {
+    setState(() {
+      _isFocusMode = !_isFocusMode;
+      _timeLeft = _isFocusMode ? focusDuration : breakDuration;
+    });
+  }
+
+  String _formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   void _addTask(BuildContext context) {
@@ -129,7 +117,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                   setState(() {
                     _currentTask = newTask;
                     // resetTimer();
-                    startTimer(); 
+                    _startTimer(); 
                   });
                   Navigator.pop(context);
                 }
@@ -143,43 +131,6 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     );
   }
 
-  void _pickColor() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        Color tempColor = _backgroundColor;
-        return AlertDialog(
-          title: const Text('Pick a background color'),
-          content: SingleChildScrollView(
-            child: ColorPicker(
-              pickerColor: tempColor,
-              onColorChanged: (color) {
-                tempColor = color;
-              },
-              showLabel: true,
-              pickerAreaHeightPercent: 0.8,
-            ),
-          ),
-          actions: [
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: const Text('Select'),
-              onPressed: () {
-                setState(() {
-                  _backgroundColor = tempColor;
-                });
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   void dispose() {
     _timer?.cancel();
@@ -190,83 +141,75 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         title: const Text('Pomodoro Timer'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.color_lens),
-            tooltip: 'Change Background Color',
-            onPressed: _pickColor,
-          ),
-        ],
       ),
       body: Container(
-        color: _backgroundColor,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              _isFocusMode ? Colors.red.shade100 : Colors.green.shade100,
+              Colors.white,
+            ],
+          ),
+        ),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ChoiceChip(
-                    label: const Text('Focus'),
-                    selected: _mode == PomodoroMode.focus,
-                    onSelected: (selected) {
-                      if (selected) switchMode(PomodoroMode.focus);
-                    },
-                  ),
-                  const SizedBox(width: 10),
-                  ChoiceChip(
-                    label: const Text('Break'),
-                    selected: _mode == PomodoroMode.breakMode,
-                    onSelected: (selected) {
-                      if (selected) switchMode(PomodoroMode.breakMode);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
               Text(
-                _mode == PomodoroMode.focus ? 'Focus Mode' : 'Break Mode',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                _isFocusMode ? 'Focus Time' : 'Break Time',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: _isFocusMode ? Colors.red : Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(height: 10),
               if (_currentTask != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.only(top: 20),
                   child: Text(
                     'Current task: ${_currentTask!.name}',
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
                   ),
                 ),
+              const SizedBox(height: 20),
               Text(
-                '${_minutes.toString().padLeft(2, '0')}:${_seconds.toString().padLeft(2, '0')}',
-                style: const TextStyle(
-                  fontSize: 80,
+                _formatTime(_timeLeft),
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  color: _isFocusMode ? Colors.red : Colors.green,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
-                    onPressed: _isRunning ? stopTimer : startTimer,
+                  ElevatedButton.icon(
+                    onPressed: _isRunning ? _pauseTimer : _startTimer,
+                    icon: Icon(_isRunning ? Icons.pause : Icons.play_arrow),
+                    label: Text(_isRunning ? 'Pause' : 'Start'),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
-                    child: Text(_isRunning ? 'Pause' : 'Start'),
                   ),
-                  const SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: resetTimer,
+                  const SizedBox(width: 16),
+                  ElevatedButton.icon(
+                    onPressed: _resetTimer,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Reset'),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
-                    child: const Text('Reset'),
                   ),
                 ],
+              ),
+              const SizedBox(height: 20),
+              TextButton.icon(
+                onPressed: _switchMode,
+                icon: Icon(_isFocusMode ? Icons.coffee : Icons.work),
+                label: Text(_isFocusMode ? 'Switch to Break' : 'Switch to Focus'),
               ),
             ],
           ),
