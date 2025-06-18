@@ -33,7 +33,7 @@ class PomodoroTimer extends StatefulWidget {
 
 class _PomodoroTimerState extends State<PomodoroTimer> {
   static const int focusDuration = 25 * 60; // 25 minutes in seconds
-  static const int breakDuration = 5 * 60; // 5 minutes in seconds
+  static const int breakDuration = 1 * 60; // 5 minutes in seconds
   
   int _timeLeft = focusDuration;
   bool _isRunning = false;
