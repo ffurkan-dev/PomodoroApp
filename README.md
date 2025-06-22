@@ -1,4 +1,4 @@
-# pomomomo
+# Pomodoro
 
 A Pomodoro app that helps you focus.
 
