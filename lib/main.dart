@@ -116,7 +116,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                   final newTask = Task(name: taskName);
                   setState(() {
                     _currentTask = newTask;
-                    // resetTimer();
+                    _resetTimer();
                     _startTimer(); 
                   });
                   Navigator.pop(context);
