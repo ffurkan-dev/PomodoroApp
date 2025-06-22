@@ -20,6 +20,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const PomodoroTimer(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -32,10 +33,10 @@ class PomodoroTimer extends StatefulWidget {
 }
 
 class _PomodoroTimerState extends State<PomodoroTimer> {
-  static const int focusDuration = 25 * 60; // 25 minutes in seconds
-  static const int breakDuration = 5 * 60; // 5 minutes in seconds
+  int _focusDuration = 25 * 60; // 25 minutes in seconds
+  int _breakDuration = 5 * 60; // 5 minutes in seconds
   
-  int _timeLeft = focusDuration;
+  int _timeLeft = 25 * 60;
   bool _isRunning = false;
   bool _isFocusMode = true;
   Timer? _timer;
@@ -68,7 +69,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   void _resetTimer() {
     _timer?.cancel();
     setState(() {
-      _timeLeft = _isFocusMode ? focusDuration : breakDuration;
+      _timeLeft = _isFocusMode ? _focusDuration : _breakDuration;
       _isRunning = false;
     });
   }
@@ -76,7 +77,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   void _switchMode() {
     setState(() {
       _isFocusMode = !_isFocusMode;
-      _timeLeft = _isFocusMode ? focusDuration : breakDuration;
+      _timeLeft = _isFocusMode ? _focusDuration : _breakDuration;
     });
   }
 
@@ -131,6 +132,60 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     );
   }
 
+  void _openSettingsDialog() {
+    final focusController = TextEditingController(text: (_focusDuration ~/ 60).toString());
+    final breakController = TextEditingController(text: (_breakDuration ~/ 60).toString());
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Settings'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: focusController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Focus Time (minutes)',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: breakController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Break Time (minutes)',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final int? newFocus = int.tryParse(focusController.text);
+                final int? newBreak = int.tryParse(breakController.text);
+                if (newFocus != null && newFocus > 0 && newBreak != null && newBreak > 0) {
+                  setState(() {
+                    _focusDuration = newFocus * 60;
+                    _breakDuration = newBreak * 60;
+                    _timeLeft = _isFocusMode ? _focusDuration : _breakDuration;
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -143,6 +198,13 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         title: const Text('Pomodoro Timer'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _openSettingsDialog,
+            tooltip: 'Settings',
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
