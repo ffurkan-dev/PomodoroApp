@@ -144,6 +144,9 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     if (_isRainPlaying) {
       await _rainPlayer.stop();
     } else {
+      if (_isFirePlaying) {
+        _toggleFireSound();
+      }
       await _rainPlayer.setReleaseMode(ReleaseMode.loop);
       await _rainPlayer.play(AssetSource('sounds/rain-falling-30-seconds-329727.mp3'));
     }
@@ -157,6 +160,9 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     if (_isFirePlaying) {
       await _firePlayer.stop();
     } else {
+      if (_isRainPlaying) {
+        _toggleRainSound();
+      }
       await _firePlayer.setReleaseMode(ReleaseMode.loop);
       await _firePlayer.play(AssetSource('sounds/fire-sound-334130.mp3'));
     }
