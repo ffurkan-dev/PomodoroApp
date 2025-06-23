@@ -2,7 +2,7 @@
 
 A Pomodoro app that helps you focus.
 
-So far, the app lets you start a Pomodoro timer, switch between focus and break modes, pause the timer whenever you need, as well as add tasks you're currently working on. 
+The app lets you start a Pomodoro timer, switch between focus and break modes, pause the timer whenever you need, as well as add tasks you're currently working on. The app sends notifications with a random motivational message to your phone whenever it is time to switch to focus/break mode. You can also play ambient rain or fire sounds to help you focus while you work. 
 
 # Running
 
